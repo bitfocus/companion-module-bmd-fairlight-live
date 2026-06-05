@@ -1,6 +1,6 @@
 ## Blackmagic Design: Fairlight Live
 
-This module controls Fairlight Live audio mixer via OSC over TCP (SLIP-framed).
+This module controls the Fairlight Live audio mixer via OSC over TCP (SLIP-framed).
 
 ### Configuration
 
