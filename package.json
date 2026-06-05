@@ -1,6 +1,6 @@
 {
 	"name": "companion-module-bmd-fairlight-live",
-	"version": "1.0.0",
+	"version": "1.0.2",
 	"main": "dist/main.js",
 	"type": "module",
 	"scripts": {
