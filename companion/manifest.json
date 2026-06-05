@@ -1,0 +1,28 @@
+{
+	"$schema": "../node_modules/@companion-module/base/assets/manifest.schema.json",
+	"type": "connection",
+	"id": "bmd-fairlight-live",
+	"name": "Blackmagic Design: Fairlight Live",
+	"shortname": "fairlight-live",
+	"description": "Control Fairlight Live audio mixer via OSC",
+	"version": "1.0.0",
+	"license": "MIT",
+	"repository": "git+https://github.com/bitfocus/companion-module-bmd-fairlight-live.git",
+	"bugs": "https://github.com/bitfocus/companion-module-bmd-fairlight-live/issues",
+	"maintainers": [
+		{
+			"name": "Gary Lamb",
+			"email": "garyl@blackmagicdesign.com"
+		}
+	],
+	"runtime": {
+		"type": "node22",
+		"api": "nodejs-ipc",
+		"apiVersion": "1.13.5",
+		"entrypoint": "../dist/main.js"
+	},
+	"legacyIds": [],
+	"manufacturer": "Blackmagic Design",
+	"products": ["Fairlight Live"],
+	"keywords": ["audio", "mixer", "fairlight", "osc"]
+}
