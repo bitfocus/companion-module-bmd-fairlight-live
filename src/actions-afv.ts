@@ -1,12 +1,20 @@
 import type { CompanionActionDefinitions } from '@companion-module/base'
-import { NUM_CAMERAS } from './config.js'
+import { getCameraChoices } from './choices.js'
 import type ModuleInstance from './main.js'
 
+const ENCODER_MODE_OPTION = {
+	type: 'dropdown' as const,
+	id: 'encoder_mode',
+	label: 'Encoder Mode',
+	choices: [
+		{ id: 'absolute', label: 'Absolute' },
+		{ id: 'relative', label: 'Relative' },
+	],
+	default: 'absolute',
+}
+
 export function getAfvActions(self: ModuleInstance): CompanionActionDefinitions {
-	const cameraChoices = []
-	for (let i = 1; i <= NUM_CAMERAS; i++) {
-		cameraChoices.push({ id: String(i), label: `Camera ${i}` })
-	}
+	const cameraChoices = getCameraChoices(self)
 
 	return {
 		afv_on: {
@@ -63,27 +71,31 @@ export function getAfvActions(self: ModuleInstance): CompanionActionDefinitions 
 		afv_fade_in_time: {
 			name: 'AFV: Fade In Time',
 			options: [
+				ENCODER_MODE_OPTION,
 				{
 					type: 'number',
 					id: 'time_ms',
-					label: 'Time (ms)',
+					label: 'Time / Delta (ms)',
 					min: 0,
 					max: 2000,
 					default: 500,
 				},
 			],
 			callback: (action) => {
-				self.sendOscInt('/afv/fade-in/time-ms', Number(action.options.time_ms))
+				const suffix = self.oscSuffix(action.options.encoder_mode)
+				self.sendOscInt(`/afv/fade-in/time-ms${suffix}`, Number(action.options.time_ms))
+				self.subscribePath('/afv/fade-in/time-ms')
 			},
 		},
 
 		afv_fade_in_level: {
 			name: 'AFV: Fade In Level',
 			options: [
+				ENCODER_MODE_OPTION,
 				{
 					type: 'number',
 					id: 'level_db',
-					label: 'Level (dB)',
+					label: 'Level / Delta (dB)',
 					min: -100,
 					max: 0,
 					default: 0,
@@ -91,34 +103,40 @@ export function getAfvActions(self: ModuleInstance): CompanionActionDefinitions 
 				},
 			],
 			callback: (action) => {
-				self.sendOscFloat('/afv/fade-in/level-db', Number(action.options.level_db))
+				const suffix = self.oscSuffix(action.options.encoder_mode)
+				self.sendOscFloat(`/afv/fade-in/level-db${suffix}`, Number(action.options.level_db))
+				self.subscribePath('/afv/fade-in/level-db')
 			},
 		},
 
 		afv_fade_out_time: {
 			name: 'AFV: Fade Out Time',
 			options: [
+				ENCODER_MODE_OPTION,
 				{
 					type: 'number',
 					id: 'time_ms',
-					label: 'Time (ms)',
+					label: 'Time / Delta (ms)',
 					min: 0,
 					max: 2000,
 					default: 500,
 				},
 			],
 			callback: (action) => {
-				self.sendOscInt('/afv/fade-out/time-ms', Number(action.options.time_ms))
+				const suffix = self.oscSuffix(action.options.encoder_mode)
+				self.sendOscInt(`/afv/fade-out/time-ms${suffix}`, Number(action.options.time_ms))
+				self.subscribePath('/afv/fade-out/time-ms')
 			},
 		},
 
 		afv_fade_out_level: {
 			name: 'AFV: Fade Out Level',
 			options: [
+				ENCODER_MODE_OPTION,
 				{
 					type: 'number',
 					id: 'level_db',
-					label: 'Level (dB)',
+					label: 'Level / Delta (dB)',
 					min: -100,
 					max: 0,
 					default: -100,
@@ -126,24 +144,29 @@ export function getAfvActions(self: ModuleInstance): CompanionActionDefinitions 
 				},
 			],
 			callback: (action) => {
-				self.sendOscFloat('/afv/fade-out/level-db', Number(action.options.level_db))
+				const suffix = self.oscSuffix(action.options.encoder_mode)
+				self.sendOscFloat(`/afv/fade-out/level-db${suffix}`, Number(action.options.level_db))
+				self.subscribePath('/afv/fade-out/level-db')
 			},
 		},
 
 		afv_hold_time: {
 			name: 'AFV: Hold Time',
 			options: [
+				ENCODER_MODE_OPTION,
 				{
 					type: 'number',
 					id: 'time_ms',
-					label: 'Time (ms)',
+					label: 'Time / Delta (ms)',
 					min: 0,
 					max: 1000,
 					default: 0,
 				},
 			],
 			callback: (action) => {
-				self.sendOscInt('/afv/hold/time-ms', Number(action.options.time_ms))
+				const suffix = self.oscSuffix(action.options.encoder_mode)
+				self.sendOscInt(`/afv/hold/time-ms${suffix}`, Number(action.options.time_ms))
+				self.subscribePath('/afv/hold/time-ms')
 			},
 		},
 

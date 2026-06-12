@@ -1,8 +1,20 @@
 import type { CompanionActionDefinitions } from '@companion-module/base'
-import { NUM_TALKBACK, NUM_CHANNELS, NUM_BUSES } from './config.js'
+import { NUM_TALKBACK } from './config.js'
+import { getChannelChoices, getMaxBusChoices } from './choices.js'
 import type ModuleInstance from './main.js'
 
 const MOMENTARY_THRESHOLD_MS = 300
+
+const ENCODER_MODE_OPTION = {
+	type: 'dropdown' as const,
+	id: 'encoder_mode',
+	label: 'Encoder Mode',
+	choices: [
+		{ id: 'absolute', label: 'Absolute' },
+		{ id: 'relative', label: 'Relative' },
+	],
+	default: 'absolute',
+}
 
 export function getTalkbackActions(self: ModuleInstance): CompanionActionDefinitions {
 	const talkbackChoices = []
@@ -11,15 +23,8 @@ export function getTalkbackActions(self: ModuleInstance): CompanionActionDefinit
 		talkbackChoices.push({ id: String(i), label })
 	}
 
-	const channelChoices = []
-	for (let i = 1; i <= NUM_CHANNELS; i++) {
-		channelChoices.push({ id: String(i), label: `Channel ${i}` })
-	}
-
-	const busChoices = []
-	for (let i = 1; i <= NUM_BUSES; i++) {
-		busChoices.push({ id: String(i), label: `Bus ${i}` })
-	}
+	const channelChoices = getChannelChoices(self)
+	const busChoices = getMaxBusChoices(self, ['sub', 'aux', 'mixm'])
 
 	const busTypeChoices = [
 		{ id: 'sub', label: 'Sub' },
@@ -203,10 +208,11 @@ export function getTalkbackActions(self: ModuleInstance): CompanionActionDefinit
 					choices: talkbackChoices,
 					default: '1',
 				},
+				ENCODER_MODE_OPTION,
 				{
 					type: 'number',
 					id: 'trim_db',
-					label: 'Trim (dB)',
+					label: 'Trim / Delta (dB)',
 					min: -10,
 					max: 30,
 					default: 0,
@@ -214,7 +220,9 @@ export function getTalkbackActions(self: ModuleInstance): CompanionActionDefinit
 				},
 			],
 			callback: (action) => {
-				self.sendOscFloat(`/talkback/${action.options.talkback}/input/trim`, Number(action.options.trim_db))
+				const suffix = self.oscSuffix(action.options.encoder_mode)
+				self.sendOscFloat(`/talkback/${action.options.talkback}/input/trim${suffix}`, Number(action.options.trim_db))
+				self.subscribePath(`/talkback/${action.options.talkback}/input/trim`)
 			},
 		},
 
@@ -228,10 +236,11 @@ export function getTalkbackActions(self: ModuleInstance): CompanionActionDefinit
 					choices: talkbackChoices,
 					default: '1',
 				},
+				ENCODER_MODE_OPTION,
 				{
 					type: 'number',
 					id: 'gain',
-					label: 'Gain',
+					label: 'Gain / Delta (dB)',
 					min: 0,
 					max: 100,
 					default: 50,
@@ -239,7 +248,9 @@ export function getTalkbackActions(self: ModuleInstance): CompanionActionDefinit
 				},
 			],
 			callback: (action) => {
-				self.sendOscFloat(`/talkback/${action.options.talkback}/input/mic-gain`, Number(action.options.gain))
+				const suffix = self.oscSuffix(action.options.encoder_mode)
+				self.sendOscFloat(`/talkback/${action.options.talkback}/input/mic-gain${suffix}`, Number(action.options.gain))
+				self.subscribePath(`/talkback/${action.options.talkback}/input/mic-gain`)
 			},
 		},
 
@@ -305,10 +316,11 @@ export function getTalkbackActions(self: ModuleInstance): CompanionActionDefinit
 					choices: talkbackChoices,
 					default: '1',
 				},
+				ENCODER_MODE_OPTION,
 				{
 					type: 'number',
 					id: 'freq',
-					label: 'Frequency (Hz)',
+					label: 'Frequency / Delta (Hz)',
 					min: 100,
 					max: 1000,
 					default: 100,
@@ -316,7 +328,9 @@ export function getTalkbackActions(self: ModuleInstance): CompanionActionDefinit
 				},
 			],
 			callback: (action) => {
-				self.sendOscFloat(`/talkback/${action.options.talkback}/input/hpf`, Number(action.options.freq))
+				const suffix = self.oscSuffix(action.options.encoder_mode)
+				self.sendOscFloat(`/talkback/${action.options.talkback}/input/hpf${suffix}`, Number(action.options.freq))
+				self.subscribePath(`/talkback/${action.options.talkback}/input/hpf`)
 			},
 		},
 
@@ -330,10 +344,11 @@ export function getTalkbackActions(self: ModuleInstance): CompanionActionDefinit
 					choices: talkbackChoices,
 					default: '1',
 				},
+				ENCODER_MODE_OPTION,
 				{
 					type: 'number',
 					id: 'level_db',
-					label: 'Level (dB)',
+					label: 'Level / Delta (dB)',
 					min: -100,
 					max: 10,
 					default: 0,
@@ -341,7 +356,9 @@ export function getTalkbackActions(self: ModuleInstance): CompanionActionDefinit
 				},
 			],
 			callback: (action) => {
-				self.sendOscFloat(`/talkback/${action.options.talkback}/input/level`, Number(action.options.level_db))
+				const suffix = self.oscSuffix(action.options.encoder_mode)
+				self.sendOscFloat(`/talkback/${action.options.talkback}/input/level${suffix}`, Number(action.options.level_db))
+				self.subscribePath(`/talkback/${action.options.talkback}/input/level`)
 			},
 		},
 

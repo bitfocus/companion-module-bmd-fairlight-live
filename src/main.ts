@@ -16,13 +16,19 @@ import { getTalkbackActions } from './actions-talkback.js'
 import { getCuePlayerActions } from './actions-cueplayer.js'
 import { getChannelActions } from './actions-channel.js'
 import { getBusActions } from './actions-bus.js'
+import { getMonitorActions } from './actions-monitor.js'
+import { getMixerActions } from './actions-mixer.js'
 import { getFeedbacks } from './feedbacks.js'
+import { getAdditionalFeedbacks } from './feedbacks-additional.js'
 import { UpdateVariableDefinitions } from './variables.js'
 
 export default class ModuleInstance extends InstanceBase<ModuleConfig> {
 	config!: ModuleConfig
 	private tcp: TCPHelper | null = null
 	private oscReceiver: OscReceiver
+	private subscribedPaths = new Set<string>()
+	private subscribedMeterPaths = new Set<string>()
+	private definitionUpdateTimer: NodeJS.Timeout | null = null
 	state: FairlightState = createDefaultState()
 
 	constructor(internal: unknown) {
@@ -42,16 +48,27 @@ export default class ModuleInstance extends InstanceBase<ModuleConfig> {
 	}
 
 	async destroy(): Promise<void> {
+		if (this.definitionUpdateTimer) clearTimeout(this.definitionUpdateTimer)
 		this.tcp?.destroy()
 		this.tcp = null
 	}
 
 	async configUpdated(config: ModuleConfig): Promise<void> {
+		if (this.definitionUpdateTimer) {
+			clearTimeout(this.definitionUpdateTimer)
+			this.definitionUpdateTimer = null
+		}
 		this.config = config
 		this.tcp?.destroy()
 		this.tcp = null
 		this.state = createDefaultState()
+		this.subscribedPaths.clear()
+		this.subscribedMeterPaths.clear()
 		this.updateActions()
+		this.updateFeedbacks()
+		this.updatePresets()
+		this.updateVariableDefinitions()
+		this.updateVariableValues()
 		this.initTcp()
 	}
 
@@ -61,16 +78,18 @@ export default class ModuleInstance extends InstanceBase<ModuleConfig> {
 
 	private updateActions(): void {
 		this.setActionDefinitions({
+			...getMixerActions(this),
 			...getAfvActions(this),
 			...getTalkbackActions(this),
 			...getCuePlayerActions(this),
 			...getChannelActions(this),
 			...getBusActions(this),
+			...getMonitorActions(this),
 		})
 	}
 
 	private updateFeedbacks(): void {
-		this.setFeedbackDefinitions(getFeedbacks(this))
+		this.setFeedbackDefinitions({ ...getFeedbacks(this), ...getAdditionalFeedbacks(this) })
 	}
 
 	private updatePresets(): void {
@@ -106,16 +125,54 @@ export default class ModuleInstance extends InstanceBase<ModuleConfig> {
 	}
 
 	private subscribe(): void {
+		this.sendOscNoArgs('/connect/mixer')
 		this.sendOscNoArgs('/connect/afv')
 		for (let i = 1; i <= NUM_TALKBACK; i++) {
 			this.sendOscNoArgs(`/connect/talkback/${i}`)
 		}
+
+		for (const path of this.subscribedPaths) {
+			this.sendOscNoArgs(`/connect${path}`)
+		}
+		for (const path of this.subscribedMeterPaths) {
+			this.sendOscInt(`/connect${path}`, 50)
+		}
+	}
+
+	public subscribePath(path: string): void {
+		if (!path.startsWith('/')) {
+			path = `/${path}`
+		}
+
+		if (this.subscribedPaths.has(path)) {
+			return
+		}
+
+		this.subscribedPaths.add(path)
+		this.sendOscNoArgs(`/connect${path}`)
+	}
+
+	public subscribeMeterPath(path: string): void {
+		if (!path.startsWith('/')) path = `/${path}`
+		if (this.subscribedMeterPaths.has(path)) return
+		this.subscribedMeterPaths.add(path)
+		this.sendOscInt(`/connect${path}`, 50)
 	}
 
 	private handleOscMessage(msg: ParsedOscMessage): void {
 		const { address, args } = msg
 
-		if (address === '/afv/on' && args[0]?.type === 'i') {
+		const countKey = this.getMixerCountKey(address)
+		if (countKey && args[0]?.type === 'i') {
+			const count = Math.max(0, args[0].value)
+			if (this.state.mixer[countKey] !== count) {
+				this.state.mixer[countKey] = count
+				this.scheduleDefinitionUpdate()
+			}
+			return
+		} else if (address === '/mixer/onair' && args[0]?.type === 'i') {
+			this.state.system.onAir = args[0].value
+		} else if (address === '/afv/on' && args[0]?.type === 'i') {
 			this.state.afv.on = args[0].value
 		} else if (address === '/afv/program' && args[0]?.type === 'i') {
 			this.state.afv.program = args[0].value
@@ -133,6 +190,12 @@ export default class ModuleInstance extends InstanceBase<ModuleConfig> {
 			this.state.afv.holdTimeMs = args[0].value
 		} else {
 			let matched = false
+
+			const cameraName = address.match(/^\/afv\/camera\/(\d+)\/name$/)
+			if (cameraName && args[0]?.type === 's') {
+				this.state.cameraNames[cameraName[1]] = args[0].value
+				matched = true
+			}
 
 			const tbGroup = address.match(/^\/talkback\/(\d+)\/group\/(\d+)$/)
 			if (tbGroup && args[0]?.type === 'i') {
@@ -158,6 +221,12 @@ export default class ModuleInstance extends InstanceBase<ModuleConfig> {
 				matched = true
 			}
 
+			const tbInput = address.match(/^\/talkback\/(\d+)\/input\/(trim|mic-gain|48V|line|hpf|level)$/)
+			if (tbInput && (args[0]?.type === 'i' || args[0]?.type === 'f')) {
+				this.state.talkback.inputs[`${tbInput[1]}/${tbInput[2]}`] = args[0].value
+				matched = true
+			}
+
 			const chLevel = address.match(/^\/channel\/(\d+)\/level$/)
 			if (chLevel && args[0]?.type === 'f') {
 				this.state.channels.levels[chLevel[1]] = args[0].value
@@ -167,6 +236,12 @@ export default class ModuleInstance extends InstanceBase<ModuleConfig> {
 			const chMute = address.match(/^\/channel\/(\d+)\/mute$/)
 			if (chMute && args[0]?.type === 'i') {
 				this.state.channels.mutes[chMute[1]] = args[0].value
+				matched = true
+			}
+
+			const chPan = address.match(/^\/channel\/(\d+)\/pan$/)
+			if (chPan && args[0]?.type === 'f') {
+				this.state.channels.pans[chPan[1]] = args[0].value
 				matched = true
 			}
 
@@ -182,6 +257,21 @@ export default class ModuleInstance extends InstanceBase<ModuleConfig> {
 				matched = true
 			}
 
+			const busPan = address.match(/^\/(sub|aux|mixm|mtx)\/(\d+)\/pan$/)
+			if (busPan && args[0]?.type === 'f') {
+				this.state.buses.pans[`${busPan[1]}/${busPan[2]}`] = args[0].value
+				matched = true
+			}
+
+			const monitorValue = address.match(/^\/monitor\/(\d+)\/(level|mute|dim)$/)
+			if (monitorValue && (args[0]?.type === 'i' || args[0]?.type === 'f')) {
+				const [, monitor, property] = monitorValue
+				if (property === 'level') this.state.monitors.levels[monitor] = args[0].value
+				else if (property === 'mute') this.state.monitors.mutes[monitor] = args[0].value
+				else this.state.monitors.dims[monitor] = args[0].value
+				matched = true
+			}
+
 			const chSendLevel = address.match(/^\/channel\/(\d+)\/(aux|mixm|mtx)\/(\d+)\/level$/)
 			if (chSendLevel && args[0]?.type === 'f') {
 				this.state.sends.levels[`channel/${chSendLevel[1]}/${chSendLevel[2]}/${chSendLevel[3]}`] = args[0].value
@@ -191,6 +281,12 @@ export default class ModuleInstance extends InstanceBase<ModuleConfig> {
 			const chSendMute = address.match(/^\/channel\/(\d+)\/(aux|mixm|mtx)\/(\d+)\/mute$/)
 			if (chSendMute && args[0]?.type === 'i') {
 				this.state.sends.mutes[`channel/${chSendMute[1]}/${chSendMute[2]}/${chSendMute[3]}`] = args[0].value
+				matched = true
+			}
+
+			const chSendPan = address.match(/^\/channel\/(\d+)\/(aux|mixm|mtx)\/(\d+)\/pan$/)
+			if (chSendPan && args[0]?.type === 'f') {
+				this.state.sends.pans[`channel/${chSendPan[1]}/${chSendPan[2]}/${chSendPan[3]}`] = args[0].value
 				matched = true
 			}
 
@@ -208,11 +304,29 @@ export default class ModuleInstance extends InstanceBase<ModuleConfig> {
 				matched = true
 			}
 
+			const busSendPan = address.match(/^\/(sub|aux|mixm)\/(\d+)\/(aux|mixm|mtx)\/(\d+)\/pan$/)
+			if (busSendPan && args[0]?.type === 'f') {
+				this.state.sends.pans[`${busSendPan[1]}/${busSendPan[2]}/${busSendPan[3]}/${busSendPan[4]}`] = args[0].value
+				matched = true
+			}
+
+			if (/^\/(channel|main|sub|aux|mixm|mtx|monitor)\/\d+\/meter$/.test(address) && args[0]?.type === 'b') {
+				const blob = args[0].value
+				if (blob.length >= 2) {
+					const count = blob.readUInt16BE(0)
+					if (blob.length >= 2 + count * 2) {
+						this.state.meters[address] = Array.from({ length: count }, (_, i) => blob.readInt16BE(2 + i * 2) / 10)
+						matched = true
+					}
+				}
+			}
+
 			if (!matched) return
 		}
 
 		this.updateVariableValues()
 		this.checkFeedbacks(
+			'mixer_onair',
 			'afv_enabled',
 			'afv_program_camera',
 			'afv_preview_camera',
@@ -224,11 +338,56 @@ export default class ModuleInstance extends InstanceBase<ModuleConfig> {
 			'bus_muted',
 			'channel_send_muted',
 			'bus_send_muted',
+			'channel_level_text',
+			'bus_level_text',
+			'channel_send_level_text',
+			'bus_send_level_text',
+			'monitor_muted',
+			'monitor_dimmed',
+			'monitor_level_text',
+			'channel_pan_text',
+			'bus_pan_text',
+			'channel_send_pan_text',
+			'bus_send_pan_text',
+			'talkback_input_48v',
+			'talkback_input_line',
+			'talkback_input_value_text',
+			'afv_value_text',
+			'afv_camera_name_text',
+			'channel_meter_text',
+			'bus_meter_text',
+			'monitor_meter_text',
 		)
+	}
+
+	private getMixerCountKey(address: string): keyof FairlightState['mixer'] | null {
+		const paths: Record<string, keyof FairlightState['mixer']> = {
+			'/mixer/channel/count': 'channel',
+			'/mixer/main/count': 'main',
+			'/mixer/sub/count': 'sub',
+			'/mixer/aux/count': 'aux',
+			'/mixer/mixm/count': 'mixm',
+			'/mixer/mtx/count': 'mtx',
+			'/afv/camera/count': 'camera',
+		}
+		return paths[address] ?? null
+	}
+
+	private scheduleDefinitionUpdate(): void {
+		if (this.definitionUpdateTimer) clearTimeout(this.definitionUpdateTimer)
+		this.definitionUpdateTimer = setTimeout(() => {
+			this.definitionUpdateTimer = null
+			this.updateActions()
+			this.updateFeedbacks()
+			this.updatePresets()
+			this.updateVariableDefinitions()
+			this.updateVariableValues()
+		}, 50)
 	}
 
 	private updateVariableValues(): void {
 		const values: Record<string, string | undefined> = {
+			mixer_onair: this.state.system.onAir ? 'On Air' : 'Off Air',
 			afv_on: this.state.afv.on ? 'On' : 'Off',
 			afv_program: String(this.state.afv.program),
 			afv_preview: String(this.state.afv.preview),
@@ -255,6 +414,27 @@ export default class ModuleInstance extends InstanceBase<ModuleConfig> {
 			values[`${type}_${n}_mute`] = mute ? 'Muted' : 'On'
 		}
 
+		for (const [key, level] of Object.entries(this.state.sends.levels)) {
+			const parts = key.split('/')
+			if (parts[0] === 'channel') {
+				const [, ch, type, n] = parts
+				values[`channel_${ch}_${type}_${n}_level`] = level.toFixed(1)
+			} else {
+				const [srcType, srcBus, destType, destBus] = parts
+				values[`${srcType}_${srcBus}_${destType}_${destBus}_level`] = level.toFixed(1)
+			}
+		}
+		for (const [key, mute] of Object.entries(this.state.sends.mutes)) {
+			const parts = key.split('/')
+			if (parts[0] === 'channel') {
+				const [, ch, type, n] = parts
+				values[`channel_${ch}_${type}_${n}_mute`] = mute ? 'Muted' : 'On'
+			} else {
+				const [srcType, srcBus, destType, destBus] = parts
+				values[`${srcType}_${srcBus}_${destType}_${destBus}_mute`] = mute ? 'Muted' : 'On'
+			}
+		}
+
 		this.setVariableValues(values)
 	}
 
@@ -279,6 +459,13 @@ export default class ModuleInstance extends InstanceBase<ModuleConfig> {
 		if (!this.tcp) return
 		const args: OscArg[] = [{ type: 's', value }]
 		void sendOsc(this.tcp, address, args)
+	}
+
+	oscSuffix(mode: unknown): string {
+		if (mode === 'relative') {
+			return '/relative'
+		}
+		return ''
 	}
 }
 

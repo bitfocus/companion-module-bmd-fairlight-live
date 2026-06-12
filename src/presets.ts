@@ -2,11 +2,37 @@ import type ModuleInstance from './main.js'
 import { combineRgb, type CompanionPresetDefinitions } from '@companion-module/base'
 import { NUM_TALKBACK } from './config.js'
 
-const PRESET_NUM_CHANNELS = 16
-const PRESET_NUM_BUSES = 8
-
 export function UpdatePresets(self: ModuleInstance): void {
 	const presets: CompanionPresetDefinitions = {
+		mixer_onair: {
+			type: 'button',
+			category: 'Mixer',
+			name: 'On Air',
+			style: {
+				text: 'On Air',
+				size: '18',
+				color: combineRgb(255, 255, 255),
+				bgcolor: combineRgb(0, 0, 0),
+			},
+			feedbacks: [
+				{
+					feedbackId: 'mixer_onair',
+					options: {},
+					style: {
+						text: 'Off Air',
+						bgcolor: combineRgb(255, 0, 0),
+						color: combineRgb(255, 255, 255),
+					},
+				},
+			],
+			steps: [
+				{
+					down: [{ actionId: 'mixer_onair', options: { state: '1' } }],
+					up: [{ actionId: 'mixer_onair', options: { state: '0' } }],
+				},
+			],
+		},
+
 		afv_toggle: {
 			type: 'button',
 			category: 'AFV',
@@ -35,7 +61,7 @@ export function UpdatePresets(self: ModuleInstance): void {
 			],
 		},
 
-		...getAfvProgramPresets(),
+		...getAfvProgramPresets(self),
 
 		cueplayer_bank_toggle: {
 			type: 'button',
@@ -113,8 +139,8 @@ export function UpdatePresets(self: ModuleInstance): void {
 		...getCuePresets(),
 		...getTalkbackGroupPresets(),
 		...getTalkbackMonitorPresets(),
-		...getTalkbackChannelPresets(),
-		...getTalkbackBusPresets(),
+		...getTalkbackChannelPresets(self),
+		...getTalkbackBusPresets(self),
 	}
 
 	self.setPresetDefinitions(presets)
@@ -147,10 +173,10 @@ function getCuePresets(): CompanionPresetDefinitions {
 	return presets
 }
 
-function getAfvProgramPresets(): CompanionPresetDefinitions {
+function getAfvProgramPresets(self: ModuleInstance): CompanionPresetDefinitions {
 	const presets: CompanionPresetDefinitions = {}
 
-	for (let c = 1; c <= 8; c++) {
+	for (let c = 1; c <= self.state.mixer.camera; c++) {
 		presets[`afv_program_${c}`] = {
 			type: 'button',
 			category: 'AFV',
@@ -278,11 +304,11 @@ function getTalkbackMonitorPresets(): CompanionPresetDefinitions {
 	return presets
 }
 
-function getTalkbackChannelPresets(): CompanionPresetDefinitions {
+function getTalkbackChannelPresets(self: ModuleInstance): CompanionPresetDefinitions {
 	const presets: CompanionPresetDefinitions = {}
 
 	for (let t = 1; t <= NUM_TALKBACK; t++) {
-		for (let c = 1; c <= PRESET_NUM_CHANNELS; c++) {
+		for (let c = 1; c <= self.state.mixer.channel; c++) {
 			presets[`talkback_${t}_channel_${c}`] = {
 				type: 'button',
 				category: `Circuit ${t}`,
@@ -325,7 +351,7 @@ function getTalkbackChannelPresets(): CompanionPresetDefinitions {
 	return presets
 }
 
-function getTalkbackBusPresets(): CompanionPresetDefinitions {
+function getTalkbackBusPresets(self: ModuleInstance): CompanionPresetDefinitions {
 	const presets: CompanionPresetDefinitions = {}
 
 	const busTypes = [
@@ -336,7 +362,7 @@ function getTalkbackBusPresets(): CompanionPresetDefinitions {
 
 	for (let t = 1; t <= NUM_TALKBACK; t++) {
 		for (const busType of busTypes) {
-			for (let b = 1; b <= PRESET_NUM_BUSES; b++) {
+			for (let b = 1; b <= self.state.mixer[busType.id as 'sub' | 'aux' | 'mixm']; b++) {
 				presets[`talkback_${t}_${busType.id}_${b}`] = {
 					type: 'button',
 					category: `Circuit ${t}`,

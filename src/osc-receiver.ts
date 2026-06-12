@@ -8,7 +8,11 @@ export interface ParsedOscMessage {
 	args: OscValue[]
 }
 
-export type OscValue = { type: 'i'; value: number } | { type: 'f'; value: number } | { type: 's'; value: string }
+export type OscValue =
+	| { type: 'i'; value: number }
+	| { type: 'f'; value: number }
+	| { type: 's'; value: string }
+	| { type: 'b'; value: Buffer }
 
 export class OscReceiver {
 	private rxBuffer: Buffer = Buffer.alloc(0)
@@ -117,6 +121,15 @@ function parseOscMessage(buf: Buffer): ParsedOscMessage | null {
 				if (strEnd < 0) return { address, args }
 				args.push({ type: 's', value: buf.toString('utf8', pos, strEnd) })
 				pos = (strEnd + 4) & ~3
+				break
+			}
+			case 'b': {
+				if (pos + 4 > buf.length) return { address, args }
+				const length = buf.readInt32BE(pos)
+				pos += 4
+				if (length < 0 || pos + length > buf.length) return { address, args }
+				args.push({ type: 'b', value: Buffer.from(buf.subarray(pos, pos + length)) })
+				pos += (length + 3) & ~3
 				break
 			}
 			default:
