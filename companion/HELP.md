@@ -8,7 +8,6 @@ Controls Fairlight Live using OSC over TCP.
 - **OSC Port**: OSC TCP port configured in Fairlight Live Show Settings. Default: `8000`.
 
 When Companion is running on the Fairlight Live computer, configure Fairlight Live Show Settings to use a different OSC port, such as `8001`.
-Note also that the channel and bus resources are dynamic, based on the loaded show.
 
 ### Actions
 
