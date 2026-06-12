@@ -2,6 +2,9 @@ import type ModuleInstance from './main.js'
 import { combineRgb, type CompanionPresetDefinitions } from '@companion-module/base'
 import { NUM_TALKBACK } from './config.js'
 
+const PRESET_NUM_CHANNELS = 16
+const PRESET_NUM_BUSES = 8
+
 export function UpdatePresets(self: ModuleInstance): void {
 	const presets: CompanionPresetDefinitions = {
 		mixer_onair: {
@@ -139,8 +142,8 @@ export function UpdatePresets(self: ModuleInstance): void {
 		...getCuePresets(),
 		...getTalkbackGroupPresets(),
 		...getTalkbackMonitorPresets(),
-		...getTalkbackChannelPresets(self),
-		...getTalkbackBusPresets(self),
+		...getTalkbackChannelPresets(),
+		...getTalkbackBusPresets(),
 	}
 
 	self.setPresetDefinitions(presets)
@@ -304,11 +307,11 @@ function getTalkbackMonitorPresets(): CompanionPresetDefinitions {
 	return presets
 }
 
-function getTalkbackChannelPresets(self: ModuleInstance): CompanionPresetDefinitions {
+function getTalkbackChannelPresets(): CompanionPresetDefinitions {
 	const presets: CompanionPresetDefinitions = {}
 
 	for (let t = 1; t <= NUM_TALKBACK; t++) {
-		for (let c = 1; c <= self.state.mixer.channel; c++) {
+		for (let c = 1; c <= PRESET_NUM_CHANNELS; c++) {
 			presets[`talkback_${t}_channel_${c}`] = {
 				type: 'button',
 				category: `Circuit ${t}`,
@@ -351,7 +354,7 @@ function getTalkbackChannelPresets(self: ModuleInstance): CompanionPresetDefinit
 	return presets
 }
 
-function getTalkbackBusPresets(self: ModuleInstance): CompanionPresetDefinitions {
+function getTalkbackBusPresets(): CompanionPresetDefinitions {
 	const presets: CompanionPresetDefinitions = {}
 
 	const busTypes = [
@@ -362,7 +365,7 @@ function getTalkbackBusPresets(self: ModuleInstance): CompanionPresetDefinitions
 
 	for (let t = 1; t <= NUM_TALKBACK; t++) {
 		for (const busType of busTypes) {
-			for (let b = 1; b <= self.state.mixer[busType.id as 'sub' | 'aux' | 'mixm']; b++) {
+			for (let b = 1; b <= PRESET_NUM_BUSES; b++) {
 				presets[`talkback_${t}_${busType.id}_${b}`] = {
 					type: 'button',
 					category: `Circuit ${t}`,
