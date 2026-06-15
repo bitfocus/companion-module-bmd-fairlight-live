@@ -23,7 +23,11 @@ Level and pan actions support absolute and relative control where available.
 
 ### Feedbacks
 
-Feedbacks are available for On Air, AFV, talkback routing, mute/dim states, cue mode, level and pan text, camera names, talkback input values, and channel/bus/monitor meters.
+- Level comparisons for channels, buses, sends, and monitors.
+- Level and pan text displays.
+- Channel, bus, and monitor meter comparisons. Meters use the maximum level across all stems.
+- Integrated loudness comparisons and text for Main buses and Monitor 1, plus Monitor 1 true-peak comparisons and text.
+- On Air, AFV, talkback, mute/dim, cue mode, camera name, and talkback input feedbacks.
 
 ### Variables
 

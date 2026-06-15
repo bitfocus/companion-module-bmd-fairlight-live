@@ -30,7 +30,7 @@ export function getMonitorActions(self: ModuleInstance): CompanionActionDefiniti
 					id: 'level_db',
 					label: 'Level / Delta (dB)',
 					min: -100,
-					max: 10,
+					max: 0,
 					default: 0,
 					step: 0.1,
 				},

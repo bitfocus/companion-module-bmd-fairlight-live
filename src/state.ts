@@ -66,6 +66,7 @@ export interface FairlightState {
 	}
 	meters: Record<string, number[]> // key: OSC meter path -> stem levels in dB
 	cameraNames: Record<string, string>
+	mainNames: Record<string, string>
 	cuePlayer: CuePlayerState
 	talkbackPress: Record<string, TalkbackPressState>
 }
@@ -123,6 +124,7 @@ export function createDefaultState(): FairlightState {
 		},
 		meters: {},
 		cameraNames: {},
+		mainNames: {},
 		cuePlayer: {
 			bank: 'A',
 			midi: false,

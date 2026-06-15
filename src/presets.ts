@@ -12,7 +12,7 @@ export function UpdatePresets(self: ModuleInstance): void {
 			category: 'Mixer',
 			name: 'On Air',
 			style: {
-				text: 'On Air',
+				text: 'Off Air',
 				size: '18',
 				color: combineRgb(255, 255, 255),
 				bgcolor: combineRgb(0, 0, 0),
@@ -22,7 +22,7 @@ export function UpdatePresets(self: ModuleInstance): void {
 					feedbackId: 'mixer_onair',
 					options: {},
 					style: {
-						text: 'Off Air',
+						text: 'On Air',
 						bgcolor: combineRgb(255, 0, 0),
 						color: combineRgb(255, 255, 255),
 					},
@@ -30,8 +30,75 @@ export function UpdatePresets(self: ModuleInstance): void {
 			],
 			steps: [
 				{
+					down: [{ actionId: 'mixer_onair', options: { state: '0' } }],
+					up: [{ actionId: 'mixer_onair', options: { state: '1' } }],
+				},
+				{
 					down: [{ actionId: 'mixer_onair', options: { state: '1' } }],
 					up: [{ actionId: 'mixer_onair', options: { state: '0' } }],
+				},
+			],
+		},
+		mixer_reset_loudness: {
+			type: 'button',
+			category: 'Mixer',
+			name: 'Monitor Loudness',
+			style: {
+				text: '$(fairlight-live:monitor_1_integrated_loudness_text)',
+				textExpression: true,
+				size: 'auto',
+				color: combineRgb(255, 255, 255),
+				bgcolor: combineRgb(0, 0, 0),
+			},
+			feedbacks: [
+				{
+					feedbackId: 'monitor_integrated',
+					options: {
+						comparitor: 'gt',
+						level: 0,
+					},
+					style: {
+						bgcolor: combineRgb(255, 0, 0),
+						color: combineRgb(255, 255, 255),
+					},
+				},
+			],
+			steps: [
+				{
+					down: [{ actionId: 'mixer_reset_loudness', options: {} }],
+					up: [],
+				},
+			],
+		},
+		mixer_reset_main_loudness: {
+			type: 'button',
+			category: 'Mixer',
+			name: 'Main 1 Loudness',
+			style: {
+				text: '$(fairlight-live:main_1_integrated_loudness_display)',
+				textExpression: true,
+				size: 'auto',
+				color: combineRgb(255, 255, 255),
+				bgcolor: combineRgb(0, 0, 0),
+			},
+			feedbacks: [
+				{
+					feedbackId: 'integrated',
+					options: {
+						path: '/main/1/integrated',
+						comparitor: 'gt',
+						level: 0,
+					},
+					style: {
+						bgcolor: combineRgb(255, 0, 0),
+						color: combineRgb(255, 255, 255),
+					},
+				},
+			],
+			steps: [
+				{
+					down: [{ actionId: 'mixer_reset_loudness', options: {} }],
+					up: [],
 				},
 			],
 		},

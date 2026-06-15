@@ -5,7 +5,7 @@ import {
 	TCPHelper,
 	type SomeCompanionConfigField,
 } from '@companion-module/base'
-import { GetConfigFields, type ModuleConfig, NUM_TALKBACK } from './config.js'
+import { GetConfigFields, type ModuleConfig, NUM_MONITORS, NUM_TALKBACK } from './config.js'
 import { UpgradeScripts } from './upgrades.js'
 import { UpdatePresets } from './presets.js'
 import { type OscArg, sendOsc } from './osc.js'
@@ -130,6 +130,9 @@ export default class ModuleInstance extends InstanceBase<ModuleConfig> {
 		for (let i = 1; i <= NUM_TALKBACK; i++) {
 			this.sendOscNoArgs(`/connect/talkback/${i}`)
 		}
+		for (let i = 1; i <= this.state.mixer.main; i++) {
+			this.sendOscNoArgs(`/connect/main/${i}/name`)
+		}
 
 		for (const path of this.subscribedPaths) {
 			this.sendOscNoArgs(`/connect${path}`)
@@ -194,6 +197,12 @@ export default class ModuleInstance extends InstanceBase<ModuleConfig> {
 			const cameraName = address.match(/^\/afv\/camera\/(\d+)\/name$/)
 			if (cameraName && args[0]?.type === 's') {
 				this.state.cameraNames[cameraName[1]] = args[0].value
+				matched = true
+			}
+
+			const mainName = address.match(/^\/main\/(\d+)\/name$/)
+			if (mainName && args[0]?.type === 's') {
+				this.state.mainNames[mainName[1]] = args[0].value
 				matched = true
 			}
 
@@ -310,7 +319,12 @@ export default class ModuleInstance extends InstanceBase<ModuleConfig> {
 				matched = true
 			}
 
-			if (/^\/(channel|main|sub|aux|mixm|mtx|monitor)\/\d+\/meter$/.test(address) && args[0]?.type === 'b') {
+			if (
+				/^\/(channel|main|sub|aux|mixm|mtx|monitor)\/\d+\/meter$/.test(address) ||
+				/^\/main\/\d+\/integrated$/.test(address) ||
+				/^\/monitor\/1\/(integrated|true-peak)$/.test(address)
+			) {
+				if (args[0]?.type !== 'b') return
 				const blob = args[0].value
 				if (blob.length >= 2) {
 					const count = blob.readUInt16BE(0)
@@ -335,28 +349,39 @@ export default class ModuleInstance extends InstanceBase<ModuleConfig> {
 			'talkback_bus_active',
 			'talkback_monitor_active',
 			'channel_muted',
-			'bus_muted',
-			'channel_send_muted',
-			'bus_send_muted',
+			'channel_level',
 			'channel_level_text',
-			'bus_level_text',
+			'channel_send_muted',
+			'channel_send_level',
 			'channel_send_level_text',
+			'channel_meter',
+			'channel_pan_text',
+			'channel_send_pan_text',
+			'bus_muted',
+			'bus_level',
+			'bus_level_text',
+			'bus_send_muted',
+			'bus_send_level',
 			'bus_send_level_text',
+			'bus_meter',
+			'bus_pan_text',
+			'bus_send_pan_text',
 			'monitor_muted',
 			'monitor_dimmed',
+			'monitor_level',
 			'monitor_level_text',
-			'channel_pan_text',
-			'bus_pan_text',
-			'channel_send_pan_text',
-			'bus_send_pan_text',
+			'monitor_meter',
+			'monitor_integrated',
+			'monitor_integrated_text',
+			'integrated',
+			'integrated_text',
+			'true_peak',
+			'true_peak_text',
 			'talkback_input_48v',
 			'talkback_input_line',
 			'talkback_input_value_text',
 			'afv_value_text',
 			'afv_camera_name_text',
-			'channel_meter_text',
-			'bus_meter_text',
-			'monitor_meter_text',
 		)
 	}
 
@@ -386,6 +411,25 @@ export default class ModuleInstance extends InstanceBase<ModuleConfig> {
 	}
 
 	private updateVariableValues(): void {
+		const formatLevelText = (level: number | undefined, suffix = ' dB'): string =>
+			level === undefined
+				? `--.-${suffix}`
+				: level <= -100
+					? `-inf${suffix}`
+					: `${level.toFixed(level < -50 ? 0 : 1)}${suffix}`
+		const getMeterLevel = (levels: number[] | undefined): number | undefined => {
+			if (!levels || levels.length === 0) return undefined
+			return Math.max(...levels)
+		}
+		const cameraName = (index: number | undefined): string => {
+			if (!index || index < 1) return '--'
+			return this.state.cameraNames[String(index)] ?? `Camera ${index}`
+		}
+		const mainName = (index: number | undefined): string => {
+			if (!index || index < 1) return '--'
+			return this.state.mainNames[String(index)] ?? `Main ${index}`
+		}
+
 		const values: Record<string, string | undefined> = {
 			mixer_onair: this.state.system.onAir ? 'On Air' : 'Off Air',
 			afv_on: this.state.afv.on ? 'On' : 'Off',
@@ -404,6 +448,12 @@ export default class ModuleInstance extends InstanceBase<ModuleConfig> {
 		for (const [ch, mute] of Object.entries(this.state.channels.mutes)) {
 			values[`channel_${ch}_mute`] = mute ? 'Muted' : 'On'
 		}
+		for (const [ch, pan] of Object.entries(this.state.channels.pans)) {
+			values[`channel_${ch}_pan`] = pan.toFixed(1)
+		}
+		for (let ch = 1; ch <= this.state.mixer.channel; ch++) {
+			values[`channel_${ch}_meter_text`] = formatLevelText(getMeterLevel(this.state.meters[`/channel/${ch}/meter`]))
+		}
 
 		for (const [key, level] of Object.entries(this.state.buses.levels)) {
 			const [type, n] = key.split('/')
@@ -412,6 +462,25 @@ export default class ModuleInstance extends InstanceBase<ModuleConfig> {
 		for (const [key, mute] of Object.entries(this.state.buses.mutes)) {
 			const [type, n] = key.split('/')
 			values[`${type}_${n}_mute`] = mute ? 'Muted' : 'On'
+		}
+		for (const [key, pan] of Object.entries(this.state.buses.pans)) {
+			const [type, n] = key.split('/')
+			values[`${type}_${n}_pan`] = pan.toFixed(1)
+		}
+		for (const bt of ['main', 'sub', 'aux', 'mixm', 'mtx'] as const) {
+			for (let i = 1; i <= this.state.mixer[bt]; i++) {
+				values[`${bt}_${i}_meter_text`] = formatLevelText(getMeterLevel(this.state.meters[`/${bt}/${i}/meter`]))
+				if (bt === 'main') {
+					values[`main_${i}_name`] = mainName(i)
+					values[`main_${i}_integrated_loudness_text`] = formatLevelText(
+						getMeterLevel(this.state.meters[`/main/${i}/integrated`]),
+						'',
+					)
+					values[`main_${i}_integrated_loudness_display`] = `${mainName(i)}\n${
+						formatLevelText(getMeterLevel(this.state.meters[`/main/${i}/integrated`]), '') ?? '--.-'
+					}`
+				}
+			}
 		}
 
 		for (const [key, level] of Object.entries(this.state.sends.levels)) {
@@ -434,6 +503,33 @@ export default class ModuleInstance extends InstanceBase<ModuleConfig> {
 				values[`${srcType}_${srcBus}_${destType}_${destBus}_mute`] = mute ? 'Muted' : 'On'
 			}
 		}
+		for (const [key, pan] of Object.entries(this.state.sends.pans)) {
+			const parts = key.split('/')
+			if (parts[0] === 'channel') {
+				const [, ch, type, n] = parts
+				values[`channel_${ch}_${type}_${n}_pan`] = pan.toFixed(1)
+			} else {
+				const [srcType, srcBus, destType, destBus] = parts
+				values[`${srcType}_${srcBus}_${destType}_${destBus}_pan`] = pan.toFixed(1)
+			}
+		}
+
+		for (let i = 1; i <= this.state.mixer.camera; i++) {
+			values[`camera_${i}_name`] = cameraName(i)
+		}
+		values.afv_program_camera_name = cameraName(this.state.afv.program)
+		values.afv_preview_camera_name = cameraName(this.state.afv.preview)
+		for (let i = 1; i <= NUM_MONITORS; i++) {
+			values[`monitor_${i}_level`] = this.state.monitors.levels[String(i)]?.toFixed(1)
+			values[`monitor_${i}_mute`] = this.state.monitors.mutes[String(i)] ? 'Muted' : 'On'
+			values[`monitor_${i}_dim`] = this.state.monitors.dims[String(i)] ? 'Dimmed' : 'Off'
+			values[`monitor_${i}_meter_text`] = formatLevelText(getMeterLevel(this.state.meters[`/monitor/${i}/meter`]))
+		}
+		values.monitor_1_integrated_loudness_text = formatLevelText(
+			getMeterLevel(this.state.meters['/monitor/1/integrated']),
+			'',
+		)
+		values.monitor_1_true_peak_text = formatLevelText(getMeterLevel(this.state.meters['/monitor/1/true-peak']))
 
 		this.setVariableValues(values)
 	}

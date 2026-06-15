@@ -21,5 +21,12 @@ export function getMixerActions(self: ModuleInstance): CompanionActionDefinition
 				self.sendOscInt('/mixer/onair', Number(action.options.state))
 			},
 		},
+		mixer_reset_loudness: {
+			name: 'Mixer: Reset Loudness',
+			options: [],
+			callback: () => {
+				self.sendOscNoArgs('/mixer/reset-loudness')
+			},
+		},
 	}
 }
