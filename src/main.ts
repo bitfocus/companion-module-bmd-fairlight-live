@@ -130,9 +130,7 @@ export default class ModuleInstance extends InstanceBase<ModuleConfig> {
 		for (let i = 1; i <= NUM_TALKBACK; i++) {
 			this.sendOscNoArgs(`/connect/talkback/${i}`)
 		}
-		for (let i = 1; i <= this.state.mixer.main; i++) {
-			this.sendOscNoArgs(`/connect/main/${i}/name`)
-		}
+		this.subscribeMainNames()
 
 		for (const path of this.subscribedPaths) {
 			this.sendOscNoArgs(`/connect${path}`)
@@ -162,6 +160,12 @@ export default class ModuleInstance extends InstanceBase<ModuleConfig> {
 		this.sendOscInt(`/connect${path}`, 50)
 	}
 
+	private subscribeMainNames(): void {
+		for (let i = 1; i <= this.state.mixer.main; i++) {
+			this.sendOscNoArgs(`/connect/main/${i}/name`)
+		}
+	}
+
 	private handleOscMessage(msg: ParsedOscMessage): void {
 		const { address, args } = msg
 
@@ -171,6 +175,9 @@ export default class ModuleInstance extends InstanceBase<ModuleConfig> {
 			if (this.state.mixer[countKey] !== count) {
 				this.state.mixer[countKey] = count
 				this.scheduleDefinitionUpdate()
+			}
+			if (countKey === 'main') {
+				this.subscribeMainNames()
 			}
 			return
 		} else if (address === '/mixer/onair' && args[0]?.type === 'i') {
