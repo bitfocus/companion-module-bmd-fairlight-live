@@ -42,9 +42,9 @@ export function UpdatePresets(self: ModuleInstance): void {
 		mixer_reset_loudness: {
 			type: 'button',
 			category: 'Mixer',
-			name: 'Monitor Loudness',
+			name: 'Loudness: Integrated',
 			style: {
-				text: '$(fairlight-live:monitor_1_integrated_loudness_text)',
+				text: '$(fairlight-live:loudness_integrated_text)',
 				textExpression: true,
 				size: 'auto',
 				color: combineRgb(255, 255, 255),
@@ -54,7 +54,7 @@ export function UpdatePresets(self: ModuleInstance): void {
 				{
 					feedbackId: 'monitor_integrated',
 					options: {
-						comparitor: 'gt',
+						comparator: 'gt',
 						level: 0,
 					},
 					style: {
@@ -86,7 +86,7 @@ export function UpdatePresets(self: ModuleInstance): void {
 					feedbackId: 'integrated',
 					options: {
 						path: '/main/1/integrated',
-						comparitor: 'gt',
+						comparator: 'gt',
 						level: 0,
 					},
 					style: {

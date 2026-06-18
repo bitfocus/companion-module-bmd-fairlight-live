@@ -97,7 +97,9 @@ export function getChannelActions(self: ModuleInstance): CompanionActionDefiniti
 				},
 			],
 			callback: (action) => {
-				self.sendOscInt(`/channel/${action.options.channel}/mute`, Number(action.options.state))
+				const path = `/channel/${action.options.channel}/mute`
+				self.sendOscInt(path, Number(action.options.state))
+				self.subscribePath(path)
 			},
 		},
 
@@ -184,10 +186,9 @@ export function getChannelActions(self: ModuleInstance): CompanionActionDefiniti
 				},
 			],
 			callback: (action) => {
-				self.sendOscInt(
-					`/channel/${action.options.channel}/${action.options.dest_type}/${action.options.dest_bus}/mute`,
-					Number(action.options.state),
-				)
+				const path = `/channel/${action.options.channel}/${action.options.dest_type}/${action.options.dest_bus}/mute`
+				self.sendOscInt(path, Number(action.options.state))
+				self.subscribePath(path)
 			},
 		},
 

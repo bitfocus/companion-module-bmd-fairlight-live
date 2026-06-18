@@ -56,7 +56,11 @@ export function getMonitorActions(self: ModuleInstance): CompanionActionDefiniti
 					default: '1',
 				},
 			],
-			callback: (action) => self.sendOscInt(`/monitor/${action.options.monitor}/mute`, Number(action.options.state)),
+			callback: (action) => {
+				const path = `/monitor/${action.options.monitor}/mute`
+				self.sendOscInt(path, Number(action.options.state))
+				self.subscribePath(path)
+			},
 		},
 		monitor_dim: {
 			name: 'Monitor: Dim',
@@ -73,7 +77,11 @@ export function getMonitorActions(self: ModuleInstance): CompanionActionDefiniti
 					default: '1',
 				},
 			],
-			callback: (action) => self.sendOscInt(`/monitor/${action.options.monitor}/dim`, Number(action.options.state)),
+			callback: (action) => {
+				const path = `/monitor/${action.options.monitor}/dim`
+				self.sendOscInt(path, Number(action.options.state))
+				self.subscribePath(path)
+			},
 		},
 	}
 }

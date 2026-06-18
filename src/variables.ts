@@ -35,7 +35,9 @@ export function UpdateVariableDefinitions(self: ModuleInstance): void {
 		for (let i = 1; i <= self.state.mixer[bt]; i++) {
 			vars.push({ variableId: `${bt}_${i}_level`, name: `${BUS_LABELS[bt]} ${i} Level (dB)` })
 			vars.push({ variableId: `${bt}_${i}_mute`, name: `${BUS_LABELS[bt]} ${i} Mute` })
-			vars.push({ variableId: `${bt}_${i}_pan`, name: `${BUS_LABELS[bt]} ${i} Pan` })
+			if (bt !== 'main') {
+				vars.push({ variableId: `${bt}_${i}_pan`, name: `${BUS_LABELS[bt]} ${i} Pan` })
+			}
 			vars.push({ variableId: `${bt}_${i}_meter_text`, name: `${BUS_LABELS[bt]} ${i} Meter Text` })
 			if (bt === 'main') {
 				vars.push({ variableId: `main_${i}_name`, name: `Main ${i} Name` })
@@ -66,7 +68,7 @@ export function UpdateVariableDefinitions(self: ModuleInstance): void {
 		}
 	}
 
-	for (const srcType of ['sub', 'aux', 'mixm'] as MixerBusType[]) {
+	for (const srcType of ['main', 'sub', 'aux', 'mixm'] as MixerBusType[]) {
 		for (let srcBus = 1; srcBus <= self.state.mixer[srcType]; srcBus++) {
 			for (const destType of ['aux', 'mixm', 'mtx'] as MixerBusType[]) {
 				for (let destBus = 1; destBus <= self.state.mixer[destType]; destBus++) {
@@ -94,10 +96,6 @@ export function UpdateVariableDefinitions(self: ModuleInstance): void {
 	vars.push({ variableId: 'afv_program_camera_name', name: 'AFV Program Camera Name' })
 	vars.push({ variableId: 'afv_preview_camera_name', name: 'AFV Preview Camera Name' })
 	vars.push({
-		variableId: 'monitor_1_integrated_loudness_display',
-		name: 'Monitor 1 Integrated Loudness Display',
-	})
-	vars.push({
 		variableId: 'main_1_integrated_loudness_display',
 		name: 'Main 1 Integrated Loudness Display',
 	})
@@ -107,8 +105,8 @@ export function UpdateVariableDefinitions(self: ModuleInstance): void {
 		vars.push({ variableId: `monitor_${i}_dim`, name: `Monitor ${i} Dim` })
 		vars.push({ variableId: `monitor_${i}_meter_text`, name: `Monitor ${i} Meter Text` })
 	}
-	vars.push({ variableId: 'monitor_1_integrated_loudness_text', name: 'Monitor 1 Integrated Loudness Text' })
-	vars.push({ variableId: 'monitor_1_true_peak_text', name: 'Monitor 1 True-Peak Text' })
+	vars.push({ variableId: 'loudness_integrated_text', name: 'Loudness: Integrated Text' })
+	vars.push({ variableId: 'loudness_true_peak_text', name: 'Loudness: True-Peak Text' })
 
 	self.setVariableDefinitions(vars)
 }

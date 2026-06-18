@@ -1,7 +1,7 @@
 import { combineRgb, type CompanionFeedbackDefinitions } from '@companion-module/base'
 import { NUM_TALKBACK } from './config.js'
 import { getCameraChoices, getChannelChoices, getMaxBusChoices } from './choices.js'
-import { compareNumber, NumberComparitor, NumberComparitorPicker } from './comparitor.js'
+import { compareNumber, NumberComparator, NumberComparatorPicker } from './comparator.js'
 import type ModuleInstance from './main.js'
 
 const BUS_TYPES = [
@@ -19,6 +19,7 @@ const SEND_DEST_TYPES = [
 ]
 
 const SEND_SOURCE_TYPES = [
+	{ id: 'main', label: 'Main' },
 	{ id: 'sub', label: 'Sub' },
 	{ id: 'aux', label: 'Aux' },
 	{ id: 'mixm', label: 'Mix Minus' },
@@ -284,7 +285,9 @@ export function getFeedbacks(self: ModuleInstance): CompanionFeedbackDefinitions
 				},
 			],
 			callback: (feedback) => {
-				return self.state.channels.mutes[String(feedback.options.channel)] === 1
+				const channel = String(feedback.options.channel)
+				self.subscribePath(`/channel/${channel}/mute`)
+				return self.state.channels.mutes[channel] === 1
 			},
 		},
 
@@ -313,6 +316,7 @@ export function getFeedbacks(self: ModuleInstance): CompanionFeedbackDefinitions
 			],
 			callback: (feedback) => {
 				const key = `${feedback.options.bus_type}/${feedback.options.bus}`
+				self.subscribePath(`/${key}/mute`)
 				return self.state.buses.mutes[key] === 1
 			},
 		},
@@ -349,6 +353,7 @@ export function getFeedbacks(self: ModuleInstance): CompanionFeedbackDefinitions
 			],
 			callback: (feedback) => {
 				const key = `channel/${feedback.options.channel}/${feedback.options.dest_type}/${feedback.options.dest_bus}`
+				self.subscribePath(`/${key}/mute`)
 				return self.state.sends.mutes[key] === 1
 			},
 		},
@@ -392,6 +397,7 @@ export function getFeedbacks(self: ModuleInstance): CompanionFeedbackDefinitions
 			],
 			callback: (feedback) => {
 				const key = `${feedback.options.src_type}/${feedback.options.src_bus}/${feedback.options.dest_type}/${feedback.options.dest_bus}`
+				self.subscribePath(`/${key}/mute`)
 				return self.state.sends.mutes[key] === 1
 			},
 		},
@@ -402,7 +408,7 @@ export function getFeedbacks(self: ModuleInstance): CompanionFeedbackDefinitions
 			defaultStyle: LEVEL_COMPARISON_STYLE,
 			options: [
 				{ type: 'dropdown', id: 'channel', label: 'Channel', choices: channelChoices, default: '1' },
-				NumberComparitorPicker(),
+				NumberComparatorPicker(),
 				LEVEL_COMPARISON_OPTION,
 			],
 			callback: (feedback) => {
@@ -411,7 +417,7 @@ export function getFeedbacks(self: ModuleInstance): CompanionFeedbackDefinitions
 				const level = self.state.channels.levels[channel]
 				return (
 					level !== undefined &&
-					compareNumber(Number(feedback.options.level), feedback.options.comparitor as NumberComparitor, level)
+					compareNumber(Number(feedback.options.level), feedback.options.comparator as NumberComparator, level)
 				)
 			},
 			learn: (feedback) => {
@@ -427,7 +433,7 @@ export function getFeedbacks(self: ModuleInstance): CompanionFeedbackDefinitions
 			options: [
 				{ type: 'dropdown', id: 'bus_type', label: 'Bus Type', choices: BUS_TYPES, default: 'main' },
 				{ type: 'dropdown', id: 'bus', label: 'Bus', choices: busChoices, default: '1' },
-				NumberComparitorPicker(),
+				NumberComparatorPicker(),
 				LEVEL_COMPARISON_OPTION,
 			],
 			callback: (feedback) => {
@@ -437,7 +443,7 @@ export function getFeedbacks(self: ModuleInstance): CompanionFeedbackDefinitions
 				const level = self.state.buses.levels[`${busType}/${bus}`]
 				return (
 					level !== undefined &&
-					compareNumber(Number(feedback.options.level), feedback.options.comparitor as NumberComparitor, level)
+					compareNumber(Number(feedback.options.level), feedback.options.comparator as NumberComparator, level)
 				)
 			},
 			learn: (feedback) => {
@@ -454,7 +460,7 @@ export function getFeedbacks(self: ModuleInstance): CompanionFeedbackDefinitions
 				{ type: 'dropdown', id: 'channel', label: 'Channel', choices: channelChoices, default: '1' },
 				{ type: 'dropdown', id: 'dest_type', label: 'Send Destination', choices: SEND_DEST_TYPES, default: 'aux' },
 				{ type: 'dropdown', id: 'dest_bus', label: 'Bus', choices: busChoices, default: '1' },
-				NumberComparitorPicker(),
+				NumberComparatorPicker(),
 				LEVEL_COMPARISON_OPTION,
 			],
 			callback: (feedback) => {
@@ -463,7 +469,7 @@ export function getFeedbacks(self: ModuleInstance): CompanionFeedbackDefinitions
 				const level = self.state.sends.levels[key]
 				return (
 					level !== undefined &&
-					compareNumber(Number(feedback.options.level), feedback.options.comparitor as NumberComparitor, level)
+					compareNumber(Number(feedback.options.level), feedback.options.comparator as NumberComparator, level)
 				)
 			},
 			learn: (feedback) => {
@@ -482,7 +488,7 @@ export function getFeedbacks(self: ModuleInstance): CompanionFeedbackDefinitions
 				{ type: 'dropdown', id: 'src_bus', label: 'Source Bus', choices: busChoices, default: '1' },
 				{ type: 'dropdown', id: 'dest_type', label: 'Send Destination', choices: SEND_DEST_TYPES, default: 'aux' },
 				{ type: 'dropdown', id: 'dest_bus', label: 'Destination Bus', choices: busChoices, default: '1' },
-				NumberComparitorPicker(),
+				NumberComparatorPicker(),
 				LEVEL_COMPARISON_OPTION,
 			],
 			callback: (feedback) => {
@@ -491,7 +497,7 @@ export function getFeedbacks(self: ModuleInstance): CompanionFeedbackDefinitions
 				const level = self.state.sends.levels[key]
 				return (
 					level !== undefined &&
-					compareNumber(Number(feedback.options.level), feedback.options.comparitor as NumberComparitor, level)
+					compareNumber(Number(feedback.options.level), feedback.options.comparator as NumberComparator, level)
 				)
 			},
 			learn: (feedback) => {

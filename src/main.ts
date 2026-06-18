@@ -131,6 +131,8 @@ export default class ModuleInstance extends InstanceBase<ModuleConfig> {
 			this.sendOscNoArgs(`/connect/talkback/${i}`)
 		}
 		this.subscribeMainNames()
+		this.subscribedMeterPaths.add('/mixer/loudness/integrated')
+		this.subscribedMeterPaths.add('/mixer/loudness/true-peak')
 
 		for (const path of this.subscribedPaths) {
 			this.sendOscNoArgs(`/connect${path}`)
@@ -306,21 +308,21 @@ export default class ModuleInstance extends InstanceBase<ModuleConfig> {
 				matched = true
 			}
 
-			const busSendLevel = address.match(/^\/(sub|aux|mixm)\/(\d+)\/(aux|mixm|mtx)\/(\d+)\/level$/)
+			const busSendLevel = address.match(/^\/(main|sub|aux|mixm)\/(\d+)\/(aux|mixm|mtx)\/(\d+)\/level$/)
 			if (busSendLevel && args[0]?.type === 'f') {
 				this.state.sends.levels[`${busSendLevel[1]}/${busSendLevel[2]}/${busSendLevel[3]}/${busSendLevel[4]}`] =
 					args[0].value
 				matched = true
 			}
 
-			const busSendMute = address.match(/^\/(sub|aux|mixm)\/(\d+)\/(aux|mixm|mtx)\/(\d+)\/mute$/)
+			const busSendMute = address.match(/^\/(main|sub|aux|mixm)\/(\d+)\/(aux|mixm|mtx)\/(\d+)\/mute$/)
 			if (busSendMute && args[0]?.type === 'i') {
 				this.state.sends.mutes[`${busSendMute[1]}/${busSendMute[2]}/${busSendMute[3]}/${busSendMute[4]}`] =
 					args[0].value
 				matched = true
 			}
 
-			const busSendPan = address.match(/^\/(sub|aux|mixm)\/(\d+)\/(aux|mixm|mtx)\/(\d+)\/pan$/)
+			const busSendPan = address.match(/^\/(main|sub|aux|mixm)\/(\d+)\/(aux|mixm|mtx)\/(\d+)\/pan$/)
 			if (busSendPan && args[0]?.type === 'f') {
 				this.state.sends.pans[`${busSendPan[1]}/${busSendPan[2]}/${busSendPan[3]}/${busSendPan[4]}`] = args[0].value
 				matched = true
@@ -329,7 +331,7 @@ export default class ModuleInstance extends InstanceBase<ModuleConfig> {
 			if (
 				/^\/(channel|main|sub|aux|mixm|mtx|monitor)\/\d+\/meter$/.test(address) ||
 				/^\/main\/\d+\/integrated$/.test(address) ||
-				/^\/monitor\/1\/(integrated|true-peak)$/.test(address)
+				/^\/mixer\/loudness\/(integrated|true-peak)$/.test(address)
 			) {
 				if (args[0]?.type !== 'b') return
 				const blob = args[0].value
@@ -472,7 +474,9 @@ export default class ModuleInstance extends InstanceBase<ModuleConfig> {
 		}
 		for (const [key, pan] of Object.entries(this.state.buses.pans)) {
 			const [type, n] = key.split('/')
-			values[`${type}_${n}_pan`] = pan.toFixed(1)
+			if (type !== 'main') {
+				values[`${type}_${n}_pan`] = pan.toFixed(1)
+			}
 		}
 		for (const bt of ['main', 'sub', 'aux', 'mixm', 'mtx'] as const) {
 			for (let i = 1; i <= this.state.mixer[bt]; i++) {
@@ -532,11 +536,9 @@ export default class ModuleInstance extends InstanceBase<ModuleConfig> {
 			values[`monitor_${i}_dim`] = this.state.monitors.dims[String(i)] ? 'Dimmed' : 'Off'
 			values[`monitor_${i}_meter_text`] = formatLevelText(getMeterLevel(this.state.meters[`/monitor/${i}/meter`]))
 		}
-		values.monitor_1_integrated_loudness_text = formatLevelText(
-			getMeterLevel(this.state.meters['/monitor/1/integrated']),
-			'',
-		)
-		values.monitor_1_true_peak_text = formatLevelText(getMeterLevel(this.state.meters['/monitor/1/true-peak']))
+		const integratedLoudnessText = formatLevelText(getMeterLevel(this.state.meters['/mixer/loudness/integrated']), '')
+		values.loudness_integrated_text = integratedLoudnessText
+		values.loudness_true_peak_text = formatLevelText(getMeterLevel(this.state.meters['/mixer/loudness/true-peak']))
 
 		this.setVariableValues(values)
 	}

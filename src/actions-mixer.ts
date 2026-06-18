@@ -22,10 +22,10 @@ export function getMixerActions(self: ModuleInstance): CompanionActionDefinition
 			},
 		},
 		mixer_reset_loudness: {
-			name: 'Mixer: Reset Loudness',
+			name: 'Loudness: Reset',
 			options: [],
 			callback: () => {
-				self.sendOscNoArgs('/mixer/reset-loudness')
+				self.sendOscNoArgs('/mixer/loudness/reset')
 			},
 		},
 	}

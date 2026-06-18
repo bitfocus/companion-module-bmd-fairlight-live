@@ -17,6 +17,7 @@ const BUS_TYPES: BusType[] = [
 ]
 
 const SEND_SOURCE_TYPES: BusType[] = [
+	{ id: 'main', prefix: 'main', label: 'Main' },
 	{ id: 'sub', prefix: 'sub', label: 'Sub' },
 	{ id: 'aux', prefix: 'aux', label: 'Aux' },
 	{ id: 'mixm', prefix: 'mixm', label: 'Mix Minus' },
@@ -132,7 +133,9 @@ export function getBusActions(self: ModuleInstance): CompanionActionDefinitions 
 			callback: (action) => {
 				const bt = BUS_TYPES.find((b) => b.id === action.options.bus_type)
 				if (bt) {
-					self.sendOscInt(`/${bt.prefix}/${action.options.bus}/mute`, Number(action.options.state))
+					const path = `/${bt.prefix}/${action.options.bus}/mute`
+					self.sendOscInt(path, Number(action.options.state))
+					self.subscribePath(path)
 				}
 			},
 		},
@@ -239,10 +242,9 @@ export function getBusActions(self: ModuleInstance): CompanionActionDefinitions 
 			callback: (action) => {
 				const src = SEND_SOURCE_TYPES.find((b) => b.id === action.options.src_type)
 				if (src) {
-					self.sendOscInt(
-						`/${src.prefix}/${action.options.src_bus}/${action.options.dest_type}/${action.options.dest_bus}/mute`,
-						Number(action.options.state),
-					)
+					const path = `/${src.prefix}/${action.options.src_bus}/${action.options.dest_type}/${action.options.dest_bus}/mute`
+					self.sendOscInt(path, Number(action.options.state))
+					self.subscribePath(path)
 				}
 			},
 		},

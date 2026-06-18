@@ -1,7 +1,7 @@
 import { combineRgb, type CompanionFeedbackDefinitions } from '@companion-module/base'
 import { NUM_MONITORS, NUM_TALKBACK } from './config.js'
 import { getBusChoices, getCameraChoices, getChannelChoices, getMaxBusChoices } from './choices.js'
-import { compareNumber, NumberComparitor, NumberComparitorPicker } from './comparitor.js'
+import { compareNumber, NumberComparator, NumberComparatorPicker } from './comparator.js'
 import type ModuleInstance from './main.js'
 
 const busTypes = [
@@ -12,7 +12,7 @@ const busTypes = [
 	{ id: 'mtx', label: 'Matrix' },
 ]
 const panBusTypes = busTypes.filter((bus) => bus.id !== 'main')
-const sendSourceTypes = panBusTypes.filter((bus) => bus.id !== 'mtx')
+const sendSourceTypes = busTypes.filter((bus) => bus.id !== 'mtx')
 const sendDestTypes = panBusTypes.filter((bus) => bus.id !== 'sub')
 const monitorChoices = Array.from({ length: NUM_MONITORS }, (_, i) => ({
 	id: String(i + 1),
@@ -115,7 +115,7 @@ export function getAdditionalFeedbacks(self: ModuleInstance): CompanionFeedbackD
 			defaultStyle: LEVEL_COMPARISON_STYLE,
 			options: [
 				{ type: 'dropdown', id: 'monitor', label: 'Monitor', choices: monitorChoices, default: '1' },
-				NumberComparitorPicker(),
+				NumberComparatorPicker(),
 				MONITOR_LEVEL_COMPARISON_OPTION,
 			],
 			callback: (feedback) => {
@@ -124,7 +124,7 @@ export function getAdditionalFeedbacks(self: ModuleInstance): CompanionFeedbackD
 				const level = self.state.monitors.levels[monitor]
 				return (
 					level !== undefined &&
-					compareNumber(Number(feedback.options.level), feedback.options.comparitor as NumberComparitor, level)
+					compareNumber(Number(feedback.options.level), feedback.options.comparator as NumberComparator, level)
 				)
 			},
 			learn: (feedback) => {
@@ -270,7 +270,7 @@ export function getAdditionalFeedbacks(self: ModuleInstance): CompanionFeedbackD
 			defaultStyle: LEVEL_COMPARISON_STYLE,
 			options: [
 				{ type: 'dropdown', id: 'channel', label: 'Channel', choices: channelChoices, default: '1' },
-				NumberComparitorPicker(),
+				NumberComparatorPicker(),
 				METER_COMPARISON_OPTION,
 			],
 			callback: (feedback) => {
@@ -279,7 +279,7 @@ export function getAdditionalFeedbacks(self: ModuleInstance): CompanionFeedbackD
 				const level = meterValue(self.state.meters[path])
 				return (
 					level !== undefined &&
-					compareNumber(Number(feedback.options.level), feedback.options.comparitor as NumberComparitor, level)
+					compareNumber(Number(feedback.options.level), feedback.options.comparator as NumberComparator, level)
 				)
 			},
 			learn: (feedback) => {
@@ -295,7 +295,7 @@ export function getAdditionalFeedbacks(self: ModuleInstance): CompanionFeedbackD
 			options: [
 				{ type: 'dropdown', id: 'bus_type', label: 'Bus Type', choices: busTypes, default: 'main' },
 				{ type: 'dropdown', id: 'bus', label: 'Bus', choices: busChoices, default: '1' },
-				NumberComparitorPicker(),
+				NumberComparatorPicker(),
 				METER_COMPARISON_OPTION,
 			],
 			callback: (feedback) => {
@@ -304,7 +304,7 @@ export function getAdditionalFeedbacks(self: ModuleInstance): CompanionFeedbackD
 				const level = meterValue(self.state.meters[path])
 				return (
 					level !== undefined &&
-					compareNumber(Number(feedback.options.level), feedback.options.comparitor as NumberComparitor, level)
+					compareNumber(Number(feedback.options.level), feedback.options.comparator as NumberComparator, level)
 				)
 			},
 			learn: (feedback) => {
@@ -319,7 +319,7 @@ export function getAdditionalFeedbacks(self: ModuleInstance): CompanionFeedbackD
 			defaultStyle: LEVEL_COMPARISON_STYLE,
 			options: [
 				{ type: 'dropdown', id: 'monitor', label: 'Monitor', choices: monitorChoices, default: '1' },
-				NumberComparitorPicker(),
+				NumberComparatorPicker(),
 				METER_COMPARISON_OPTION,
 			],
 			callback: (feedback) => {
@@ -328,7 +328,7 @@ export function getAdditionalFeedbacks(self: ModuleInstance): CompanionFeedbackD
 				const level = meterValue(self.state.meters[path])
 				return (
 					level !== undefined &&
-					compareNumber(Number(feedback.options.level), feedback.options.comparitor as NumberComparitor, level)
+					compareNumber(Number(feedback.options.level), feedback.options.comparator as NumberComparator, level)
 				)
 			},
 			learn: (feedback) => {
@@ -343,7 +343,7 @@ export function getAdditionalFeedbacks(self: ModuleInstance): CompanionFeedbackD
 			defaultStyle: LEVEL_COMPARISON_STYLE,
 			options: [
 				{ type: 'dropdown', id: 'path', label: 'Source', choices: integratedChoices, default: '/main/1/integrated' },
-				NumberComparitorPicker(),
+				NumberComparatorPicker(),
 				INTEGRATED_COMPARISON_OPTION,
 			],
 			callback: (feedback) => {
@@ -353,7 +353,7 @@ export function getAdditionalFeedbacks(self: ModuleInstance): CompanionFeedbackD
 				const level = meterValue(self.state.meters[path])
 				return (
 					level !== undefined &&
-					compareNumber(Number(feedback.options.level), feedback.options.comparitor as NumberComparitor, level)
+					compareNumber(Number(feedback.options.level), feedback.options.comparator as NumberComparator, level)
 				)
 			},
 			learn: (feedback) => {
@@ -363,20 +363,20 @@ export function getAdditionalFeedbacks(self: ModuleInstance): CompanionFeedbackD
 		},
 		monitor_integrated: {
 			type: 'boolean',
-			name: 'Monitor: Integrated Loudness',
+			name: 'Loudness: Integrated',
 			defaultStyle: LEVEL_COMPARISON_STYLE,
-			options: [NumberComparitorPicker(), INTEGRATED_COMPARISON_OPTION],
+			options: [NumberComparatorPicker(), INTEGRATED_COMPARISON_OPTION],
 			callback: (feedback) => {
-				const path = '/monitor/1/integrated'
+				const path = '/mixer/loudness/integrated'
 				self.subscribeMeterPath(path)
 				const level = meterValue(self.state.meters[path])
 				return (
 					level !== undefined &&
-					compareNumber(Number(feedback.options.level), feedback.options.comparitor as NumberComparitor, level)
+					compareNumber(Number(feedback.options.level), feedback.options.comparator as NumberComparator, level)
 				)
 			},
 			learn: () => {
-				const level = meterValue(self.state.meters['/monitor/1/integrated'])
+				const level = meterValue(self.state.meters['/mixer/loudness/integrated'])
 				return level === undefined ? undefined : { level }
 			},
 		},
@@ -395,39 +395,39 @@ export function getAdditionalFeedbacks(self: ModuleInstance): CompanionFeedbackD
 		},
 		monitor_integrated_text: {
 			type: 'advanced',
-			name: 'Monitor: Integrated Loudness Text',
+			name: 'Loudness: Integrated Text',
 			options: [],
 			callback: () => {
-				const path = '/monitor/1/integrated'
+				const path = '/mixer/loudness/integrated'
 				self.subscribeMeterPath(path)
 				return text(meterValue(self.state.meters[path]), '')
 			},
 		},
 		true_peak: {
 			type: 'boolean',
-			name: 'Monitor: True-Peak',
+			name: 'Loudness: True-Peak',
 			defaultStyle: LEVEL_COMPARISON_STYLE,
-			options: [NumberComparitorPicker(), TRUE_PEAK_COMPARISON_OPTION],
+			options: [NumberComparatorPicker(), TRUE_PEAK_COMPARISON_OPTION],
 			callback: (feedback) => {
-				const path = '/monitor/1/true-peak'
+				const path = '/mixer/loudness/true-peak'
 				self.subscribeMeterPath(path)
 				const level = meterValue(self.state.meters[path])
 				return (
 					level !== undefined &&
-					compareNumber(Number(feedback.options.level), feedback.options.comparitor as NumberComparitor, level)
+					compareNumber(Number(feedback.options.level), feedback.options.comparator as NumberComparator, level)
 				)
 			},
 			learn: () => {
-				const level = meterValue(self.state.meters['/monitor/1/true-peak'])
+				const level = meterValue(self.state.meters['/mixer/loudness/true-peak'])
 				return level === undefined ? undefined : { level }
 			},
 		},
 		true_peak_text: {
 			type: 'advanced',
-			name: 'Monitor: True-Peak Text',
+			name: 'Loudness: True-Peak Text',
 			options: [],
 			callback: () => {
-				const path = '/monitor/1/true-peak'
+				const path = '/mixer/loudness/true-peak'
 				self.subscribeMeterPath(path)
 				return text(meterValue(self.state.meters[path]), '')
 			},
