@@ -1,6 +1,6 @@
 import type ModuleInstance from './main.js'
 import { combineRgb, type CompanionPresetDefinitions } from '@companion-module/base'
-import { NUM_TALKBACK } from './config.js'
+import { NUM_MONITORS, NUM_TALKBACK } from './config.js'
 
 const PRESET_NUM_CHANNELS = 16
 const PRESET_NUM_BUSES = 8
@@ -329,7 +329,7 @@ function getTalkbackMonitorPresets(): CompanionPresetDefinitions {
 	const presets: CompanionPresetDefinitions = {}
 
 	for (let t = 1; t <= NUM_TALKBACK; t++) {
-		for (let m = 1; m <= NUM_TALKBACK; m++) {
+		for (let m = 1; m <= NUM_MONITORS; m++) {
 			if (m === t) continue
 
 			presets[`talkback_${t}_monitor_${m}`] = {

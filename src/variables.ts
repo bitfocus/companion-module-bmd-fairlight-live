@@ -45,6 +45,10 @@ export function UpdateVariableDefinitions(self: ModuleInstance): void {
 					variableId: `main_${i}_integrated_loudness_text`,
 					name: `Main ${i} Integrated Loudness Text`,
 				})
+				vars.push({
+					variableId: `main_${i}_integrated_loudness_display`,
+					name: `Main ${i} Integrated Loudness Display`,
+				})
 			}
 		}
 	}
@@ -95,10 +99,6 @@ export function UpdateVariableDefinitions(self: ModuleInstance): void {
 
 	vars.push({ variableId: 'afv_program_camera_name', name: 'AFV Program Camera Name' })
 	vars.push({ variableId: 'afv_preview_camera_name', name: 'AFV Preview Camera Name' })
-	vars.push({
-		variableId: 'main_1_integrated_loudness_display',
-		name: 'Main 1 Integrated Loudness Display',
-	})
 	for (let i = 1; i <= NUM_MONITORS; i++) {
 		vars.push({ variableId: `monitor_${i}_level`, name: `Monitor ${i} Level (dB)` })
 		vars.push({ variableId: `monitor_${i}_mute`, name: `Monitor ${i} Mute` })

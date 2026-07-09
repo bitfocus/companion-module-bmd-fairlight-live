@@ -64,10 +64,8 @@ export class OscReceiver {
 					} else if (raw[i + 1] === SLIP_ESC_ESC) {
 						decoded.push(SLIP_ESC)
 						i++
-					} else {
-						decoded.push(raw[i])
 					}
-				} else {
+				} else if (raw[i] !== SLIP_ESC) {
 					decoded.push(raw[i])
 				}
 			}

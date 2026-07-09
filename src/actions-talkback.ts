@@ -277,6 +277,7 @@ export function getTalkbackActions(self: ModuleInstance): CompanionActionDefinit
 			],
 			callback: (action) => {
 				self.sendOscInt(`/talkback/${action.options.talkback}/input/48V`, Number(action.options.state))
+				self.subscribePath(`/talkback/${action.options.talkback}/input/48V`)
 			},
 		},
 
@@ -303,6 +304,7 @@ export function getTalkbackActions(self: ModuleInstance): CompanionActionDefinit
 			],
 			callback: (action) => {
 				self.sendOscInt(`/talkback/${action.options.talkback}/input/line`, Number(action.options.input))
+				self.subscribePath(`/talkback/${action.options.talkback}/input/line`)
 			},
 		},
 
