@@ -1,6 +1,6 @@
 ## Blackmagic Design: Fairlight Live
 
-Controls Fairlight Live using OSC over TCP. V1.0.4 provides support for V1.0.2 of the Fairlight Live OSC specification.
+Controls Fairlight Live using OSC over TCP. V1.1.0 provides support for V1.0.2 of the Fairlight Live OSC specification.
 
 ### Configuration
 
